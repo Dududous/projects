@@ -45,7 +45,7 @@ To set up this project locally, follow these steps:
 
 ```bash
 git clone
-cd sentiment-analysis-classifier
+cd sentiment-analysis
 ```
 
 2. Install the required dependencies:
