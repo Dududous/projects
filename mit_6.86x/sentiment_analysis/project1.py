@@ -141,12 +141,23 @@ def perceptron(feature_matrix, labels, T):
             (found also after T iterations through the feature matrix).
     """
     # Your code here
-    raise NotImplementedError
+    m, n = feature_matrix.shape
+    theta = np.zeros(n)  # 1D array of shape (n,)
+    theta_0 = 0.0        # Scalar value
+
+    # Iterate through T epochs
     for t in range(T):
-        for i in get_order(nsamples):
-            # Your code here
-            raise NotImplementedError
-    # Your code here
+        # Get the order in which to iterate through the dataset
+        for i in get_order(feature_matrix.shape[0]):
+            # Perform a single step update using perceptron_single_step_update
+            theta, theta_0 = perceptron_single_step_update(
+                feature_vector=feature_matrix[i],
+                label=labels[i],
+                current_theta=theta,
+                current_theta_0=theta_0,
+            )
+
+    return theta, theta_0
     raise NotImplementedError
 
 
