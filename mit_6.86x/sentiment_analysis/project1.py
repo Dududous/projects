@@ -426,25 +426,31 @@ def extract_words(text):
 
 
 
-def bag_of_words(texts, remove_stopword=False):
+def bag_of_words(texts):
     """
-    NOTE: feel free to change this code as guided by Section 3 (e.g. remove
-    stopwords, add bigrams etc.)
-
     Args:
-        `texts` - a list of natural language strings.
+        texts: A list of natural language strings.
+
     Returns:
-        a dictionary that maps each word appearing in `texts` to a unique
-        integer `index`.
+        A dictionary mapping each word appearing in `texts` to a unique integer index.
     """
-    
-    indices_by_word = {}  # maps word to unique index
+    # Initialize dictionary
+    indices_by_word = {}
+
+    # Load stopwords if removal is enabled
+    stopwords = set()
+    with open("stopwords.txt", "r") as f:
+        stopwords = set(f.read().splitlines())
+
+    # Populate dictionary
     for text in texts:
         word_list = extract_words(text)
         for word in word_list:
-            if word in indices_by_word: continue
-            #if word in stopword: continue
-            indices_by_word[word] = len(indices_by_word)
+            # Skip stopwords if removal is enabled
+            if word in stopwords:
+                continue
+            if word not in indices_by_word:
+                indices_by_word[word] = len(indices_by_word)
 
     return indices_by_word
 
