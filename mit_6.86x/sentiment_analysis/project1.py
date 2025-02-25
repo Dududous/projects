@@ -188,7 +188,38 @@ def average_perceptron(feature_matrix, labels, T):
         the average offset parameter `theta_0` as a floating point number
             (averaged also over T iterations through the feature matrix).
     """
-    # Your code here
+        # Initialize theta and theta_0 to zero
+    m, n = feature_matrix.shape
+    theta = np.zeros(n)  # 1D array of shape (n,)
+    theta_0 = 0.0        # Scalar value
+
+    # Initialize cumulative sums for averaging
+    theta_sum = np.zeros(n)  # To store cumulative sum of all theta updates
+    theta_0_sum = 0.0        # To store cumulative sum of all theta_0 updates
+
+    # Total number of updates across all epochs
+    total_steps = m * T
+
+    # Iterate through T epochs
+    for t in range(T):
+        # Get the order in which to iterate through the dataset
+        for i in get_order(feature_matrix.shape[0]):
+            # Perform a single step update using perceptron_single_step_update
+            theta, theta_0 = perceptron_single_step_update(
+                feature_vector=feature_matrix[i],
+                label=labels[i],
+                current_theta=theta,
+                current_theta_0=theta_0,
+            )
+            # Update cumulative sums
+            theta_sum += theta
+            theta_0_sum += theta_0
+
+    # Compute averages
+    avg_theta = theta_sum / total_steps
+    avg_theta_0 = theta_0_sum / total_steps
+
+    return avg_theta, avg_theta_0
     raise NotImplementedError
 
 
