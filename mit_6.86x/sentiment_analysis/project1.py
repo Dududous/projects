@@ -250,7 +250,18 @@ def pegasos_single_step_update(
         real valued number with the value of theta_0 after the old updated has
         completed.
     """
-    # Your code here
+    # Check if the condition y * (theta · x + theta_0) <= 1 is satisfied
+    if label * (np.dot(theta, feature_vector) + theta_0) <= 1:
+        # Update theta and theta_0 for misclassified points
+        updated_theta = (1 - eta * L) * theta + eta * label * feature_vector
+        updated_theta_0 = theta_0 + eta * label
+    else:
+        # Update theta only for correctly classified points
+        updated_theta = (1 - eta * L) * theta
+        updated_theta_0 = theta_0
+
+    return updated_theta, updated_theta_0
+
     raise NotImplementedError
 
 
@@ -282,7 +293,35 @@ def pegasos(feature_matrix, labels, T, L):
         the value of the theta_0, the offset classification parameter, found
         after T iterations through the feature matrix.
     """
-    # Your code here
+    # Initialize theta and theta_0 to zero
+    m, n = feature_matrix.shape
+    theta = np.zeros(n)  # 1D array of shape (n,)
+    theta_0 = 0.0        # Scalar value
+
+    # Counter for updates
+    update_counter = 0
+
+    # Iterate through T epochs
+    for t in range(T):
+        # Get the order in which to iterate through the dataset
+        for i in get_order(feature_matrix.shape[0]):
+            # Increment update counter
+            update_counter += 1
+            
+            # Compute learning rate eta = 1 / sqrt(update_counter)
+            eta = 1 / np.sqrt(update_counter)
+            
+            # Perform a single step update using Pegasos
+            theta, theta_0 = pegasos_single_step_update(
+                feature_vector=feature_matrix[i],
+                label=labels[i],
+                L=L,
+                eta=eta,
+                current_theta=theta,
+                current_theta_0=theta_0,
+            )
+
+    return theta, theta_0
     raise NotImplementedError
 
 
