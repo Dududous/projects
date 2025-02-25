@@ -46,7 +46,6 @@ def hinge_loss_single(feature_vector, label, theta, theta_0):
     
     return loss
 
-    raise NotImplementedError
 
 
 
@@ -78,7 +77,6 @@ def hinge_loss_full(feature_matrix, labels, theta, theta_0):
     # Return average loss
     return total_loss / len(labels)
 
-    raise NotImplementedError
 
 
 
@@ -114,7 +112,6 @@ def perceptron_single_step_update(
         updated_theta_0 = current_theta_0
 
     return updated_theta, updated_theta_0
-    raise NotImplementedError
 
 
 
@@ -158,7 +155,6 @@ def perceptron(feature_matrix, labels, T):
             )
 
     return theta, theta_0
-    raise NotImplementedError
 
 
 
@@ -220,7 +216,6 @@ def average_perceptron(feature_matrix, labels, T):
     avg_theta_0 = theta_0_sum / total_steps
 
     return avg_theta, avg_theta_0
-    raise NotImplementedError
 
 
 def pegasos_single_step_update(
@@ -262,7 +257,6 @@ def pegasos_single_step_update(
 
     return updated_theta, updated_theta_0
 
-    raise NotImplementedError
 
 
 
@@ -317,12 +311,11 @@ def pegasos(feature_matrix, labels, T, L):
                 label=labels[i],
                 L=L,
                 eta=eta,
-                current_theta=theta,
-                current_theta_0=theta_0,
+                theta=theta,
+                theta_0=theta_0,
             )
 
     return theta, theta_0
-    raise NotImplementedError
 
 
 
@@ -358,8 +351,13 @@ def classify(feature_matrix, theta, theta_0):
         given theta and theta_0. If a prediction is GREATER THAN zero, it
         should be considered a positive classification.
     """
-    # Your code here
-    raise NotImplementedError
+    # Compute the predictions for all data points
+    predictions = np.dot(feature_matrix, theta) + theta_0
+
+    # Classify as 1 if prediction > 0, else -1
+    classifications = np.where(predictions > 0, 1, -1)
+
+    return classifications
 
 
 def classifier_accuracy(
