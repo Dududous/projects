@@ -21,18 +21,31 @@ def augment_feature_vector(X):
 
 def compute_probabilities(X, theta, temp_parameter):
     """
-    Computes, for each datapoint X[i], the probability that X[i] is labeled as j
-    for j = 0, 1, ..., k-1
+    Computes, for each data point X[i], the probability that X[i] is labeled as j
+    for j = 0, 1, ..., k-1.
 
     Args:
         X - (n, d) NumPy array (n datapoints each with d features)
         theta - (k, d) NumPy array, where row j represents the parameters of our model for label j
-        temp_parameter - the temperature parameter of softmax function (scalar)
+        temp_parameter - the temperature parameter of the softmax function (scalar)
+
     Returns:
         H - (k, n) NumPy array, where each entry H[j][i] is the probability that X[i] is labeled as j
     """
-    #YOUR CODE HERE
-    raise NotImplementedError
+    # Compute the dot product of theta and X.T, divided by temp_parameter
+    logits = np.dot(theta, X.T) / temp_parameter
+    
+    # Subtract max(logits) for numerical stability
+    logits_stable = logits - np.max(logits, axis=0)
+    
+    # Compute exponentials of stabilized logits
+    exp_logits = np.exp(logits_stable)
+    
+    # Compute softmax probabilities
+    probabilities = exp_logits / np.sum(exp_logits, axis=0)
+    
+    return probabilities
+
 
 def compute_cost_function(X, Y, theta, lambda_factor, temp_parameter):
     """
