@@ -87,23 +87,36 @@ def compute_cost_function(X, Y, theta, lambda_factor, temp_parameter):
 
 def run_gradient_descent_iteration(X, Y, theta, alpha, lambda_factor, temp_parameter):
     """
-    Runs one step of batch gradient descent
+    Runs one step of batch gradient descent.
 
     Args:
         X - (n, d) NumPy array (n datapoints each with d features)
-        Y - (n, ) NumPy array containing the labels (a number from 0-9) for each
-            data point
-        theta - (k, d) NumPy array, where row j represents the parameters of our
-                model for label j
+        Y - (n, ) NumPy array containing the labels (a number from 0-9) for each data point
+        theta - (k, d) NumPy array, where row j represents the parameters of our model for label j
         alpha - the learning rate (scalar)
         lambda_factor - the regularization constant (scalar)
         temp_parameter - the temperature parameter of softmax function (scalar)
 
     Returns:
-        theta - (k, d) NumPy array that is the final value of parameters theta
+        theta - (k, d) NumPy array that is updated after one step of gradient descent
     """
-    #YOUR CODE HERE
-    raise NotImplementedError
+    # Number of classes (k) and number of data points (n)
+    k = theta.shape[0]
+    n = X.shape[0]
+    
+    # Compute probabilities using the compute_probabilities function
+    probabilities = compute_probabilities(X, theta, temp_parameter)
+    
+    # Create a sparse matrix for the indicator function [Y == j]
+    M = sparse.coo_matrix((np.ones(n), (Y, np.arange(n))), shape=(k, n)).toarray()
+    
+    # Compute the gradient of the cost function with respect to theta
+    gradient = (-1 / (temp_parameter * n)) * np.dot(M - probabilities, X) + lambda_factor * theta
+    
+    # Update theta using gradient descent
+    theta = theta - alpha * gradient
+    
+    return theta
 
 def update_y(train_y, test_y):
     """
