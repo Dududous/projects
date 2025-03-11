@@ -53,18 +53,37 @@ def compute_cost_function(X, Y, theta, lambda_factor, temp_parameter):
 
     Args:
         X - (n, d) NumPy array (n datapoints each with d features)
-        Y - (n, ) NumPy array containing the labels (a number from 0-9) for each
-            data point
-        theta - (k, d) NumPy array, where row j represents the parameters of our
-                model for label j
+        Y - (n, ) NumPy array containing the labels (a number from 0-9) for each data point
+        theta - (k, d) NumPy array, where row j represents the parameters of our model for label j
         lambda_factor - the regularization constant (scalar)
         temp_parameter - the temperature parameter of softmax function (scalar)
 
-    Returns
+    Returns:
         c - the cost value (scalar)
     """
-    #YOUR CODE HERE
-    raise NotImplementedError
+    # Number of data points
+    n = X.shape[0]
+    
+    # Compute probabilities using the provided compute_probabilities function
+    probabilities = compute_probabilities(X, theta, temp_parameter)
+    
+    # Create a mask for the correct class probabilities
+    correct_class_probabilities = probabilities[Y, np.arange(n)]
+    
+    # Compute the log of correct class probabilities
+    log_correct_class_probabilities = np.log(correct_class_probabilities)
+    
+    # Compute the first term of the cost function (cross-entropy loss)
+    cross_entropy_loss = -np.sum(log_correct_class_probabilities) / n
+    
+    # Compute the second term of the cost function (L2 regularization)
+    l2_regularization = (lambda_factor / 2) * np.sum(theta**2)
+    
+    # Total cost is the sum of cross-entropy loss and regularization term
+    cost = cross_entropy_loss + l2_regularization
+    
+    return cost
+
 
 def run_gradient_descent_iteration(X, Y, theta, alpha, lambda_factor, temp_parameter):
     """
