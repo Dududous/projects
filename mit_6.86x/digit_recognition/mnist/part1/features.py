@@ -4,19 +4,30 @@ import matplotlib.pyplot as plt
 
 def project_onto_PC(X, pcs, n_components, feature_means):
     """
-    Given principal component vectors pcs = principal_components(X)
+    Given principal component vectors pcs = principal_components(X),
     this function returns a new data array in which each sample in X
-    has been projected onto the first n_components principcal components.
+    has been projected onto the first n_components principal components.
+
+    Args:
+        X - (n, d) NumPy array containing the original data points
+        pcs - (d, d) NumPy array containing the principal components (eigenvectors of covariance matrix)
+        n_components - integer, number of principal components to project onto
+        feature_means - (d, ) NumPy array containing the mean of each feature from the training data
+
+    Returns:
+        projected_data - (n, n_components) NumPy array containing the projected data
     """
-    # TODO: first center data using the feature_means
-    # TODO: Return the projection of the centered dataset
-    #       on the first n_components principal components.
-    #       This should be an array with dimensions: n x n_components.
-    # Hint: these principal components = first n_components columns
-    #       of the eigenvectors returned by principal_components().
-    #       Note that each eigenvector is already be a unit-vector,
-    #       so the projection may be done using matrix multiplication.
-    raise NotImplementedError
+    # Center the data by subtracting the feature means
+    centered_data = X - feature_means
+    
+    # Select the first n_components columns of pcs (principal components)
+    top_pcs = pcs[:, :n_components]
+    
+    # Project the centered data onto the top principal components using matrix multiplication
+    projected_data = np.dot(centered_data, top_pcs)
+    
+    return projected_data
+
 
 
 ### Functions which are already complete, for you to use ###
