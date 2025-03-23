@@ -18,8 +18,8 @@ def rectified_linear_unit(x):
     return np.maximum(0, x)
 
 def rectified_linear_unit_derivative(x):
-    """ Returns the derivative of ReLU."""
-    # TODO
+    """ Returns the derivative of ReLU. """
+    return 1 if x > 0 else 0
 
 def output_layer_activation(x):
     """ Linear function, returns input as is. """
