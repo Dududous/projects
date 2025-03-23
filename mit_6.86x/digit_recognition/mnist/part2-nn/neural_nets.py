@@ -14,8 +14,8 @@ import math
 
 
 def rectified_linear_unit(x):
-    """ Returns the ReLU of x, or the maximum between 0 and x."""
-    # TODO
+    """ Returns the ReLU of x, or the maximum between 0 and x. """
+    return np.maximum(0, x)
 
 def rectified_linear_unit_derivative(x):
     """ Returns the derivative of ReLU."""
