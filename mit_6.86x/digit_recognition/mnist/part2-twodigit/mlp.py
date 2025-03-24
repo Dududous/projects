@@ -14,18 +14,27 @@ num_classes = 10
 img_rows, img_cols = 42, 28 # input image dimensions
 
 class MLP(nn.Module):
-
     def __init__(self, input_dimension):
         super(MLP, self).__init__()
         self.flatten = Flatten()
-        # TODO initialize model layers here
+        
+        # Initialize model layers
+        self.hidden_layer = nn.Linear(input_dimension, 64)  # Hidden layer with 64 units
+        self.output_layer_first_digit = nn.Linear(64, 10)   # Output layer for first digit (10 classes)
+        self.output_layer_second_digit = nn.Linear(64, 10)  # Output layer for second digit (10 classes)
 
     def forward(self, x):
-        xf = self.flatten(x)
-
-        # TODO use model layers to predict the two digits
-
+        xf = self.flatten(x)  # Flatten the input tensor
+        
+        # Pass through hidden layer with activation function
+        hidden_output = F.relu(self.hidden_layer(xf))
+        
+        # Predict two digits using separate output layers
+        out_first_digit = self.output_layer_first_digit(hidden_output)
+        out_second_digit = self.output_layer_second_digit(hidden_output)
+        
         return out_first_digit, out_second_digit
+
 
 def main():
     X_train, y_train, X_test, y_test = U.get_data(path_to_data_dir, use_mini_dataset)
