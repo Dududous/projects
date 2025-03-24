@@ -16,16 +16,46 @@ img_rows, img_cols = 42, 28 # input image dimensions
 
 
 class CNN(nn.Module):
-
     def __init__(self, input_dimension):
         super(CNN, self).__init__()
-        # TODO initialize model layers here
+        
+        # Define convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3))  # First convolutional layer
+        self.pool1 = nn.MaxPool2d(kernel_size=(2, 2))                               # First max pooling layer
+        
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3)) # Second convolutional layer
+        self.pool2 = nn.MaxPool2d(kernel_size=(2, 2))                               # Second max pooling layer
+        
+        # Flatten layer
+        self.flatten = Flatten()
+        
+        # Fully connected layers for digit prediction
+        self.fc1 = nn.Linear(64 * 5 * 5, 128)                                       # Fully connected layer
+        self.dropout = nn.Dropout(p=0.5)                                           # Dropout for regularization
+        self.fc_out_first_digit = nn.Linear(128, 10)                               # Output layer for first digit
+        self.fc_out_second_digit = nn.Linear(128, 10)                              # Output layer for second digit
 
     def forward(self, x):
-
-        # TODO use model layers to predict the two digits
-
+        # Pass through convolutional and pooling layers
+        x = F.relu(self.conv1(x))
+        x = self.pool1(x)
+        
+        x = F.relu(self.conv2(x))
+        x = self.pool2(x)
+        
+        # Flatten the output for fully connected layers
+        x = self.flatten(x)
+        
+        # Pass through fully connected layers
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        
+        # Predict two digits using separate output layers
+        out_first_digit = self.fc_out_first_digit(x)
+        out_second_digit = self.fc_out_second_digit(x)
+        
         return out_first_digit, out_second_digit
+
 
 def main():
     X_train, y_train, X_test, y_test = U.get_data(path_to_data_dir, use_mini_dataset)
