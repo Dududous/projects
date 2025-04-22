@@ -94,6 +94,7 @@ def run(X: np.ndarray, mixture: GaussianMixture,
 
     Args:
         X: (n, d) array holding the data
+        mixture: the current gaussian mixture
         post: (n, K) array holding the soft counts
             for all components for all examples
 
@@ -103,7 +104,29 @@ def run(X: np.ndarray, mixture: GaussianMixture,
             for all components for all examples
         float: log-likelihood of the current assignment
     """
-    raise NotImplementedError
+    # Compute initial log-likelihood
+    post, ll = estep(X, mixture)
+    
+    # Initialize for convergence check
+    prev_ll = float('-inf')
+    
+    # EM algorithm iteration loop
+    while True:
+        # Check convergence criterion
+        if abs(ll - prev_ll) <= 1e-6 * abs(ll):
+            break
+            
+        # Store current log-likelihood for next comparison
+        prev_ll = ll
+        
+        # M-step: Update parameters based on current posterior probabilities
+        mixture = mstep(X, post)
+        
+        # E-step: Compute new posterior probabilities and log-likelihood
+        post, ll = estep(X, mixture)
+    
+    return mixture, post, ll
+
 
 
 def fill_matrix(X: np.ndarray, mixture: GaussianMixture) -> np.ndarray:
