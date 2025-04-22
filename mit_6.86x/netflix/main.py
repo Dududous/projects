@@ -43,3 +43,41 @@ for K in [1, 2, 3, 4]:
     plot(X, best_mixture, best_post, title)
     
     print(f"Cost|K={K} = {best_cost:.4f}")
+
+# EM Clustering
+em_results = {}
+
+for K in [1, 2, 3, 4]:
+    best_ll = float('-inf')
+    best_mixture = None
+    best_post = None
+    best_seed = None
+    
+    # Try different seeds and select the best result
+    for seed in range(5):
+        # Initialize mixture model with random means
+        mixture, post = init(X, K, seed)
+        
+        # Run EM algorithm
+        mixture, post, ll = em.run(X, mixture, post)
+        
+        # Track the best solution (highest log-likelihood)
+        if ll > best_ll:
+            best_ll = ll
+            best_mixture = mixture
+            best_post = post
+            best_seed = seed
+    
+    # Store the best result
+    em_results[K] = {
+        'log_likelihood': best_ll,
+        'mixture': best_mixture,
+        'post': best_post,
+        'seed': best_seed
+    }
+    
+    # Plot the best solution
+    title = f"EM Clustering (K={K}, Seed={best_seed})"
+    plot(X, best_mixture, best_post, title)
+    
+    print(f"Log-likelihood|K={K} = {best_ll:.4f}")
