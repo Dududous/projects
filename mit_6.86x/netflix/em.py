@@ -53,22 +53,39 @@ def estep(X: np.ndarray, mixture: GaussianMixture) -> Tuple[np.ndarray, float]:
 
 
 
-def mstep(X: np.ndarray, post: np.ndarray, mixture: GaussianMixture,
-          min_variance: float = .25) -> GaussianMixture:
+def mstep(X: np.ndarray, post: np.ndarray) -> GaussianMixture:
     """M-step: Updates the gaussian mixture by maximizing the log-likelihood
     of the weighted dataset
 
     Args:
-        X: (n, d) array holding the data, with incomplete entries (set to 0)
+        X: (n, d) array holding the data
         post: (n, K) array holding the soft counts
             for all components for all examples
-        mixture: the current gaussian mixture
-        min_variance: the minimum variance for each gaussian
 
     Returns:
         GaussianMixture: the new gaussian mixture
     """
-    raise NotImplementedError
+    n, d = X.shape
+    _, K = post.shape
+
+    # Compute the effective number of points assigned to each cluster
+    Nk = np.sum(post, axis=0)  # shape (K,)
+
+    # Update means: μₖ = (1/Nₖ) * Σᵢ γ(z^(i)ₖ) * x^(i)
+    mu = (post.T @ X) / Nk[:, np.newaxis]  # shape (K, d)
+
+    # Update variances: σₖ² = (1/(d*Nₖ)) * Σᵢ γ(z^(i)ₖ) * ||x^(i) - μₖ||²
+    var = np.zeros(K)
+    for k in range(K):
+        diff = X - mu[k]  # shape (n, d)
+        sq_dist = np.sum(diff**2, axis=1)  # shape (n,)
+        var[k] = np.sum(post[:, k] * sq_dist) / (Nk[k] * d)
+
+    # Update mixing proportions: πₖ = Nₖ / n
+    p = Nk / n  # shape (K,)
+
+    return GaussianMixture(mu, var, p)
+
 
 
 def run(X: np.ndarray, mixture: GaussianMixture,
