@@ -98,4 +98,17 @@ def bic(X: np.ndarray, mixture: GaussianMixture,
     Returns:
         float: the BIC for this mixture
     """
-    raise NotImplementedError
+    n, d = X.shape
+    K = len(mixture.p)
+    
+    # Calculate number of free parameters in the model
+    # - K means with d dimensions each: K*d parameters
+    # - K variances (one per component for spherical covariance): K parameters
+    # - K-1 mixing coefficients (since they must sum to 1): K-1 parameters
+    p = K*d + K + (K-1)
+    
+    # BIC formula: l - (1/2)p log n
+    # Using the formula from the specification
+    return log_likelihood - (1/2) * p * np.log(n)
+
+
