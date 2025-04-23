@@ -9,7 +9,7 @@ def estep(X: np.ndarray, mixture: GaussianMixture) -> Tuple[np.ndarray, float]:
     """E-step: Softly assigns each datapoint to a gaussian component
 
     Args:
-        X: (n, d) array holding the data
+        X: (n, d) array holding the data, with incomplete entries (set to 0)
         mixture: the current gaussian mixture
 
     Returns:
@@ -20,71 +20,109 @@ def estep(X: np.ndarray, mixture: GaussianMixture) -> Tuple[np.ndarray, float]:
     n, d = X.shape
     K, _ = mixture.mu.shape
     
-    # Extract the parameters from the mixture
-    mu = mixture.mu  # (K, d)
-    var = mixture.var  # (K,)
-    p = mixture.p  # (K,)
+    # Create mask for observed entries: 1 if observed, 0 if missing
+    observed_mask = (X != 0).astype(float)
     
-    # Initialize array to hold log-probabilities for each data point and component
+    # Initialize log posterior matrix
     log_post = np.zeros((n, K))
     
-    # Compute log-probabilities for each data point and component
     for j in range(K):
-        # Compute the log of the multivariate normal density
-        diff = X - mu[j]  # (n, d)
-        norm_sq = np.sum(diff**2, axis=1)  # (n,)
-        log_normal_density = -norm_sq / (2 * var[j]) - d/2 * np.log(2 * np.pi * var[j])  # (n,)
+        # Extract parameters for cluster j
+        mu_j = mixture.mu[j]
+        var_j = mixture.var[j]
+        p_j = mixture.p[j]
         
-        # Add the log of the mixing proportion
-        log_post[:, j] = np.log(p[j]) + log_normal_density  # (n,)
+        # Calculate squared difference for observed dimensions
+        diff = X - mu_j
+        diff = diff * observed_mask  # Zero out differences for missing dimensions
+        sq_diff = np.sum(diff**2, axis=1)
+        
+        # Count observed dimensions per data point
+        n_obs_dims = np.sum(observed_mask, axis=1)
+        
+        # Log Gaussian density for observed dimensions
+        log_norm = -0.5 * n_obs_dims * np.log(2 * np.pi * var_j) - 0.5 * sq_diff / var_j
+        
+        # Log posterior = log prior + log likelihood
+        log_post[:, j] = np.log(p_j) + log_norm
     
-    # Use the log-sum-exp trick to compute the log of the marginal likelihood
-    max_log = np.max(log_post, axis=1, keepdims=True)  # (n, 1)
-    log_marginal = max_log + np.log(np.sum(np.exp(log_post - max_log), axis=1, keepdims=True))  # (n, 1)
+    # Use log-sum-exp trick for numerical stability
+    log_post_max = np.max(log_post, axis=1, keepdims=True)
+    log_sum = log_post_max + np.log(np.sum(np.exp(log_post - log_post_max), axis=1, keepdims=True))
     
-    # Compute the posterior probabilities
-    post = np.exp(log_post - log_marginal)  # (n, K)
+    # Log-likelihood of the data
+    ll = np.sum(log_sum)
     
-    # Compute the log-likelihood
-    ll = np.sum(log_marginal)  # scalar
+    # Compute posterior probabilities (soft assignments)
+    post = np.exp(log_post - log_sum)
     
     return post, ll
 
 
 
-
-def mstep(X: np.ndarray, post: np.ndarray) -> GaussianMixture:
+def mstep(X: np.ndarray, post: np.ndarray, mixture: GaussianMixture,
+          min_variance: float = .25) -> GaussianMixture:
     """M-step: Updates the gaussian mixture by maximizing the log-likelihood
     of the weighted dataset
 
     Args:
-        X: (n, d) array holding the data
+        X: (n, d) array holding the data, with incomplete entries (set to 0)
         post: (n, K) array holding the soft counts
             for all components for all examples
+        mixture: the current gaussian mixture
+        min_variance: the minimum variance for each gaussian
 
     Returns:
         GaussianMixture: the new gaussian mixture
     """
     n, d = X.shape
     _, K = post.shape
-
-    # Compute the effective number of points assigned to each cluster
-    Nk = np.sum(post, axis=0)  # shape (K,)
-
-    # Update means: μₖ = (1/Nₖ) * Σᵢ γ(z^(i)ₖ) * x^(i)
-    mu = (post.T @ X) / Nk[:, np.newaxis]  # shape (K, d)
-
-    # Update variances: σₖ² = (1/(d*Nₖ)) * Σᵢ γ(z^(i)ₖ) * ||x^(i) - μₖ||²
+    
+    # Create mask for observed entries (1 if observed, 0 if missing)
+    observed = (X != 0).astype(float)
+    
+    # Update mixing coefficients (π_k)
+    p = np.sum(post, axis=0) / n
+    
+    # Initialize new means with current values
+    mu = mixture.mu.copy()
     var = np.zeros(K)
+    
+    # Update means (μ)
     for k in range(K):
-        diff = X - mu[k]  # shape (n, d)
-        sq_dist = np.sum(diff**2, axis=1)  # shape (n,)
-        var[k] = np.sum(post[:, k] * sq_dist) / (Nk[k] * d)
-
-    # Update mixing proportions: πₖ = Nₖ / n
-    p = Nk / n  # shape (K,)
-
+        for l in range(d):
+            # Calculate weights for dimension l in component k
+            weights = post[:, k] * observed[:, l]
+            weight_sum = np.sum(weights)
+            
+            # Only update mean if we have sufficient support (sum of weights ≥ 1)
+            if weight_sum >= 1:
+                mu[k, l] = np.sum(weights * X[:, l]) / weight_sum
+    
+    # Update variances (σ²)
+    for k in range(K):
+        # Calculate squared differences for observed dimensions
+        diff = X - mu[k]  # Difference between data points and component mean
+        diff_obs = diff * observed  # Zero out missing dimensions
+        sq_diff = np.sum(diff_obs**2, axis=1)  # Sum squared differences per point
+        
+        # Count observed dimensions for each data point
+        n_obs_dims = np.sum(observed, axis=1)
+        
+        # Calculate denominator: sum of (posterior * number of observed dimensions)
+        denominator = np.sum(post[:, k] * n_obs_dims)
+        
+        # Calculate variance with protection against division by zero
+        if denominator > 0:
+            var[k] = np.sum(post[:, k] * sq_diff) / denominator
+        else:
+            var[k] = min_variance
+        
+        # Apply minimum variance constraint to prevent collapse
+        var[k] = max(var[k], min_variance)
+    
     return GaussianMixture(mu, var, p)
+
 
 
 
@@ -104,26 +142,20 @@ def run(X: np.ndarray, mixture: GaussianMixture,
             for all components for all examples
         float: log-likelihood of the current assignment
     """
-    # Compute initial log-likelihood
-    post, ll = estep(X, mixture)
-    
-    # Initialize for convergence check
-    prev_ll = float('-inf')
-    
-    # EM algorithm iteration loop
+    prev_ll = None
+    ll = None
+
     while True:
-        # Check convergence criterion
-        if abs(ll - prev_ll) <= 1e-6 * abs(ll):
-            break
-            
-        # Store current log-likelihood for next comparison
-        prev_ll = ll
-        
-        # M-step: Update parameters based on current posterior probabilities
-        mixture = mstep(X, post)
-        
-        # E-step: Compute new posterior probabilities and log-likelihood
+        # E-step
         post, ll = estep(X, mixture)
+        
+        # Check for convergence
+        if prev_ll is not None and abs(ll - prev_ll) <= 1e-6 * abs(ll):
+            break
+        prev_ll = ll
+
+        # M-step
+        mixture = mstep(X, post, mixture)
     
     return mixture, post, ll
 
@@ -136,7 +168,62 @@ def fill_matrix(X: np.ndarray, mixture: GaussianMixture) -> np.ndarray:
         X: (n, d) array of incomplete data (incomplete entries =0)
         mixture: a mixture of gaussians
 
-    Returns
+    Returns:
         np.ndarray: a (n, d) array with completed data
     """
-    raise NotImplementedError
+    n, d = X.shape
+    K, _ = mixture.mu.shape
+    
+    # Create a copy of X to fill in missing values
+    X_pred = X.copy()
+    
+    # Create a mask for observed entries (1 if observed, 0 if missing)
+    observed = (X != 0).astype(float)
+    
+    # Calculate unconditional mean (used for completely missing rows)
+    # E[x] = sum_k p_k * mu_k
+    unconditional_mean = np.sum(mixture.p[:, np.newaxis] * mixture.mu, axis=0)
+    
+    # For each data point with missing values
+    for i in range(n):
+        # Skip if no missing values
+        if np.all(observed[i]):
+            continue
+        
+        # Indices of observed and missing features
+        obs_idx = np.where(observed[i] == 1)[0]
+        miss_idx = np.where(observed[i] == 0)[0]
+        
+        # If no observed values, use unconditional mean
+        if len(obs_idx) == 0:
+            X_pred[i] = unconditional_mean
+            continue
+        
+        # Extract observed values
+        x_obs = X[i, obs_idx]
+        
+        # Compute posterior probabilities for each component
+        post = np.zeros(K)
+        for k in range(K):
+            # Extract mean and variance for this component
+            mu_k_obs = mixture.mu[k, obs_idx]
+            var_k = mixture.var[k]
+            
+            # Compute log-likelihood of observed values
+            diff = x_obs - mu_k_obs
+            loglike = -0.5 * np.sum(diff**2) / var_k - 0.5 * len(obs_idx) * np.log(2 * np.pi * var_k)
+            
+            # Add log prior
+            post[k] = np.log(mixture.p[k]) + loglike
+        
+        # Normalize posterior (using log-sum-exp trick)
+        post_max = np.max(post)
+        post = np.exp(post - post_max)
+        post = post / np.sum(post)
+        
+        # Compute expected values for missing features
+        for j in miss_idx:
+            # E[x_j | x_obs] = sum_k P(k | x_obs) * mu_k,j
+            X_pred[i, j] = np.sum(post * mixture.mu[:, j])
+    
+    return X_pred
